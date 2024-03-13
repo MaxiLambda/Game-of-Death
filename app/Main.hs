@@ -1,32 +1,57 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
-import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
-import Control.Exception (finally)
-import Control.Monad (forM_, forever)
-import Data.Char (isPunctuation, isSpace)
-import Data.Monoid (mappend)
+import Control.Concurrent (threadDelay)
+import Control.Monad (forM_)
+import Data.Map qualified as Map
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import Game
+import Game.Board
 
-import qualified Network.WebSockets as WS
+import Network.WebSockets qualified as WS
 
 main :: IO ()
-main = putStrLn "Not implemented"
-
+main =
+  let initBoard =
+        Board . Map.fromList . map cellToEntry $
+          [ ((3, 3), Red)
+          , ((3, 4), Blue)
+          , ((4, 3), Blue)
+          , ((7, 8), Blue)
+          , ((8, 8), Blue)
+          , ((9, 8), Blue)
+          ]
+      boards = iterate advanceBoard initBoard
+   in forM_
+        boards
+        ( \board -> do
+            mapM_ putStrLn $ boardToLines 10 10 board
+            putStrLn . replicate 10 $ '='
+            threadDelay (1000 * 500) -- sleep for 500 ms
+        )
 type ClientName = Text
 
 type Client = (ClientName, WS.Connection)
 
+data ServerState = SState
+  { client1 :: !(Maybe Client) -- player 1
+  , client2 :: !(Maybe Client) -- player 2
+  }
 
-data ServerState = SState {
-  client1 :: !(Maybe Client), --player 1
-  client2 :: !(Maybe Client), --player 2
-  rounds :: !Int, --the number of rounds to play until the game ends
-  steps :: ![Int], --the number of steps for each round
-  currentRound :: !Int, --the current round
-  board :: !Board --the board state
-}
+cellToEntry :: ((Int, Int), Color) -> (Coordinate, Cell)
+cellToEntry ((x, y), color) = (coord, Cell color coord)
+ where
+  coord = Coordinate (x, y)
+
+boardToLines :: Int -> Int -> Board -> [String]
+boardToLines xs ys (Board bMap) =
+  [ [ charIcon . (`Map.lookup` bMap) $ Coordinate (x, y)
+    | x <- [0 .. xs]
+    ]
+  | y <- [0 .. ys]
+  ]
+
+charIcon :: Maybe Cell -> Char
+charIcon Nothing = ' '
+charIcon (Just (Cell color _)) = case color of
+  Red -> 'o'
+  Blue -> 'x'
+  Wall -> '#'

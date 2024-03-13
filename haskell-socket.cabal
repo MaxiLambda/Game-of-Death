@@ -60,7 +60,8 @@ executable haskell-socket
     -- .hs or .lhs file containing the Main module.
     main-is:          Main.hs
     -- Modules included in this executable, other than Main.
-    other-modules:    Game
+    other-modules:    Game.Game,
+                      Game.Board
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -69,7 +70,8 @@ executable haskell-socket
     build-depends:    base ^>=4.17.2.1,
                       websockets ^>= 0.13.0.0,
                       text ^>=2.0.2,
-                      mtl ^>=2.3.1
+                      mtl ^>=2.3.1,
+                      containers ^>=0.6.7
  
 
     -- Directories containing source files.
